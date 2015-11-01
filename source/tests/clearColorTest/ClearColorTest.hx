@@ -49,7 +49,9 @@ class ClearColorTest extends OpenGLTest
         var currentTime = DuellKit.instance().time;
         var tween = (Math.sin(currentTime) + 1.0) / 2.0;
 
-        GL.clearColor(tween, 1.0-tween, 0.5, 1.0);
+        //GL.clearColor(tween, 1.0-tween, 0.5, 1.0);
+        //GL.clearColor(1, 1, 0, 1.0); //yellow
+        GL.clearColor(0.5, 0, 0.5, 1.0); //purple
         GL.clear(GLDefines.COLOR_BUFFER_BIT);
     }
 }

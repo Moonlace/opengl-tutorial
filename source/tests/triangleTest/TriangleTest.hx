@@ -43,7 +43,7 @@ class TriangleTest extends OpenGLTest
     inline static private var positionAttributeIndex: Int = 0;
     inline static private var colorAttributeIndex: Int = 1;
 
-    inline static private var indexCount: Int = 3;
+    inline static private var indexCount: Int = 6;
 
     inline static private var vertexShader =
         "
@@ -223,13 +223,27 @@ class TriangleTest extends OpenGLTest
     {
         /// VertexBuffer also called Array Buffer
 
-        var vertexCount: Int = 3;
+        var vertexCount: Int = 4;
         var vertexBufferSize: Int = vertexCount * (sizeOfFloat * positionAttributeCount + sizeOfFloat * colorAttributeCount);
         var vertexBufferData: Data = new Data(vertexBufferSize);
                                             //  x    y    z    w    r    g    b    a
         var vertexBufferValues: Array<Float> = [0.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0,     // vertex 0
                                                 0.5, 0.5, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0,     // vertex 1
-                                                0.5, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0];    // vertex 2
+                                                0.5, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0,     // vertex 2
+                                                -0.5, -0.5, 0.0, 1.0, 0.0, 1.0, 1.0, 1.0];   // vertex 3
+
+        /**
+        Move the triangle to the lower left corner of the screen
+        var vertexBufferValues: Array<Float> = [-1.0, -1.0, 0.0, 1.0, 1.0, 1.0, 0.0, 1.0,     // vertex 0
+                                                -0.5, -0.5, 0.0, 1.0, 0.5, 0.0, 0.5, 1.0,     // vertex 1
+                                                -0.5, -1.0, 0.0, 1.0, 0.0, 1.0, 1.0, 1.0];    // vertex 2
+                                                */
+        /**
+        Move the triangle to the upper right corner of the screen
+        var vertexBufferValues: Array<Float> = [0.5, 0.5, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0,     // vertex 0
+                                                1.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0,     // vertex 1
+                                                1.0, 0.5, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0];    // vertex 2
+        */
 
         vertexBufferData.writeFloatArray(vertexBufferValues, DataType.DataTypeFloat32);
         vertexBufferData.offset = 0;
@@ -245,7 +259,7 @@ class TriangleTest extends OpenGLTest
         var indexBufferSize: Int = indexCount * sizeOfShort;
         var indexBufferData: Data = new Data(indexBufferSize);
 
-        var indexBufferValues: Array<Int> = [0, 1, 2];  // These indices reference the vertices above.
+        var indexBufferValues: Array<Int> = [3, 0, 2, 0, 1, 2];  // These indices reference the vertices above.
 
         indexBufferData.writeIntArray(indexBufferValues, DataType.DataTypeUInt16);
         indexBufferData.offset = 0;
@@ -271,7 +285,8 @@ class TriangleTest extends OpenGLTest
 
         GL.useProgram(shaderProgram);
 
-        var tint: Float = 0.1 + 0.9 * tween;
+        //var tint: Float = 0.1 + 0.9 * tween;
+        var tint: Float = 1.0;
         GL.uniform1f(uniformLocation, tint);
 
         GL.bindBuffer(GLDefines.ARRAY_BUFFER, vertexBuffer);

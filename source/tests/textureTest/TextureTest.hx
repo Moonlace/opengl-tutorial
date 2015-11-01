@@ -46,7 +46,7 @@ class TextureTest extends OpenGLTest
     inline static private var colorAttributeIndex: Int = 1;
     inline static private var texCoordAttributeIndex: Int = 2;
 
-    inline static private var indexCount: Int = 3;
+    inline static private var indexCount: Int = 4;
 
     inline static private var vertexShader =
         "
@@ -55,6 +55,7 @@ class TextureTest extends OpenGLTest
             attribute highp   vec2  a_TexCoord;
 
             uniform highp     float u_Tint;
+            uniform highp     float u_TexScalar;
 
             varying lowp      vec4  v_Color;
             varying highp     vec2  v_TexCoord;
@@ -116,7 +117,7 @@ class TextureTest extends OpenGLTest
     private function createShader()
     {
         textureShader = new Shader();
-        textureShader.createShader(vertexShader, fragmentShader, ["a_Position", "a_Color", "a_TexCoord"], ["u_Tint", "s_Texture"]);
+        textureShader.createShader(vertexShader, fragmentShader, ["a_Position", "a_Color", "u_TexScalar"], ["u_Tint", "s_Texture", "u_TexCoord"]);
     }
 
     private function destroyShader(): Void
@@ -128,13 +129,14 @@ class TextureTest extends OpenGLTest
     {
         /// VertexBuffer also called Array Buffer
 
-        var vertexCount: Int = 3;
+        var vertexCount: Int = 4;
         var vertexBufferSize: Int = vertexCount * (sizeOfFloat * positionAttributeCount + sizeOfFloat * colorAttributeCount + sizeOfFloat * texCoordAttributeCount);
         var vertexBufferData: Data = new Data(vertexBufferSize);
                                             //  x    y    z    w    r    g    b    a    u    v
-        var vertexBufferValues: Array<Float> = [0.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0,     // vertex 0
-                                                0.5, 0.5, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 1.0, 1.0,     // vertex 1
-                                                0.5, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0, 1.0, 0.0];    // vertex 2
+        var vertexBufferValues: Array<Float> = [0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0,     // vertex 0
+                                                0.5, 0.5, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,     // vertex 1
+                                                0.5, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0,     // vertex 3
+                                                0.0, 0.5, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 1.0];    // vertex 2
 
         vertexBufferData.writeFloatArray(vertexBufferValues, DataType.DataTypeFloat32);
         vertexBufferData.offset = 0;
@@ -150,7 +152,7 @@ class TextureTest extends OpenGLTest
         var indexBufferSize: Int = indexCount * sizeOfShort;
         var indexBufferData: Data = new Data(indexBufferSize);
 
-        var indexBufferValues: Array<Int> = [0, 1, 2];  // These indices reference the vertices above.
+        var indexBufferValues: Array<Int> = [0, 3, 1, 2];  // These indices reference the vertices above.
 
         indexBufferData.writeIntArray(indexBufferValues, DataType.DataTypeUInt16);
         indexBufferData.offset = 0;
@@ -190,13 +192,13 @@ class TextureTest extends OpenGLTest
             {
                 if (x % 2 == y % 2) // Checkerboard
                 {
-                    red = 255;
-                    green = 255;
-                    blue = 255;
+                    red = y * x;
+                    green = y * x;
+                    blue = y * x;
                 }
                 else
                 {
-                    red = 0;
+                    red = 255;
                     green = 0;
                     blue = 0;
                 }
@@ -221,12 +223,12 @@ class TextureTest extends OpenGLTest
         GL.bindTexture(GLDefines.TEXTURE_2D, texture);
 
         // Configure Filtering Mode
-        GL.texParameteri(GLDefines.TEXTURE_2D, GLDefines.TEXTURE_MAG_FILTER, GLDefines.LINEAR);
-        GL.texParameteri(GLDefines.TEXTURE_2D, GLDefines.TEXTURE_MIN_FILTER, GLDefines.LINEAR);
+        GL.texParameteri(GLDefines.TEXTURE_2D, GLDefines.TEXTURE_MAG_FILTER, GLDefines.NEAREST);
+        GL.texParameteri(GLDefines.TEXTURE_2D, GLDefines.TEXTURE_MIN_FILTER, GLDefines.NEAREST);
 
         // Configure wrapping
-        GL.texParameteri(GLDefines.TEXTURE_2D, GLDefines.TEXTURE_WRAP_S, GLDefines.REPEAT);
-        GL.texParameteri(GLDefines.TEXTURE_2D, GLDefines.TEXTURE_WRAP_T, GLDefines.REPEAT);
+        GL.texParameteri(GLDefines.TEXTURE_2D, GLDefines.TEXTURE_WRAP_S, GLDefines.CLAMP_TO_EDGE);
+        GL.texParameteri(GLDefines.TEXTURE_2D, GLDefines.TEXTURE_WRAP_T, GLDefines.CLAMP_TO_EDGE);
 
         // Copy data to gpu memory
         GL.pixelStorei(GLDefines.UNPACK_ALIGNMENT, 4);
@@ -249,8 +251,12 @@ class TextureTest extends OpenGLTest
 
         GL.useProgram(textureShader.shaderProgram);
 
-        var tint: Float = 0.5 + 0.5 * tween;
+        //var tint: Float = 0.5 + 0.5 * tween;
+        var tint: Float = 1.0;
         GL.uniform1f(textureShader.uniformLocations[0], tint);
+
+        var cord: Float = tween;
+        GL.uniform1f(textureShader.uniformLocations[2], cord);
 
         GL.activeTexture(GLDefines.TEXTURE0);
         GL.bindTexture(GLDefines.TEXTURE_2D, texture);
@@ -280,7 +286,7 @@ class TextureTest extends OpenGLTest
         GL.vertexAttribPointer(texCoordAttributeIndex, texCoordAttributeCount, GLDefines.FLOAT, false, stride, attributeOffset);
 
         var indexOffset: Int = 0;
-        GL.drawElements(GLDefines.TRIANGLES, indexCount, GLDefines.UNSIGNED_SHORT, indexOffset);
+        GL.drawElements(GLDefines.TRIANGLE_FAN, indexCount, GLDefines.UNSIGNED_SHORT, indexOffset);
 
         GL.bindBuffer(GLDefines.ARRAY_BUFFER, GL.nullBuffer);
         GL.bindBuffer(GLDefines.ELEMENT_ARRAY_BUFFER, GL.nullBuffer);
