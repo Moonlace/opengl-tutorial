@@ -37,14 +37,17 @@ import gl.GLDefines;
 
 class MeshTest extends OpenGLTest
 {
-    inline private static var IMAGE_PATH = "meshTest/images/lena.png";
+    inline private static var IMAGE_PATH1 = "meshTest/images/garfield_the_cat.png";
+    inline private static var IMAGE_PATH2 = "meshTest/images/lena.png";
     inline private static var VERTEXSHADER_PATH = "common/shaders/ScreenSpace_PosColorTex.vsh";
     inline private static var FRAGMENTSHADER_PATH = "common/shaders/ScreenSpace_PosColorTex.fsh";
 
     private var textureShader: Shader;
     private var animatedMesh: AnimatedMesh;
+    private var animatedMesh2: AnimatedMesh;
 
-    private var texture: GLTexture;
+    private var texture1: GLTexture;
+    private var texture2: GLTexture;
 
     // Create OpenGL objectes (Shaders, Buffers, Textures) here
     override private function onCreate(): Void
@@ -54,7 +57,8 @@ class MeshTest extends OpenGLTest
         configureOpenGLState();
         createShader();
         createMesh();
-        createTexture();
+        texture1 = createTexture(IMAGE_PATH1, GLDefines.TEXTURE0);
+        texture2 = createTexture(IMAGE_PATH2, GLDefines.TEXTURE1);
     }
 
     // Destroy your created OpenGL objectes
@@ -89,23 +93,28 @@ class MeshTest extends OpenGLTest
     private function createMesh()
     {
         animatedMesh = new AnimatedMesh();
-        animatedMesh.createBuffers();
+        animatedMesh.createBuffers1();
+
+        animatedMesh2 = new AnimatedMesh();
+        animatedMesh2.createBuffers2;
     }
 
     private function destroyMesh()
     {
         animatedMesh.destroyBuffers();
+        animatedMesh2.destroyBuffers();
     }
 
-    private function createTexture(): Void
+    private function createTexture(imagePath: String, activeTexture: Int): GLTexture
     {
-        var imageData: Data = AssetLoader.getDataFromFile(IMAGE_PATH);
+        var imageData: Data = AssetLoader.getDataFromFile(imagePath);
         var bitmap: Bitmap = ImageDecoder.decodePNG(imageData);
 
         /// Create, configure and upload opengl texture
 
-        texture = GL.createTexture();
+        var texture: GLTexture = GL.createTexture();
 
+        GL.activeTexture(activeTexture);
         GL.bindTexture(GLDefines.TEXTURE_2D, texture);
 
         // Configure Filtering Mode
@@ -138,11 +147,14 @@ class MeshTest extends OpenGLTest
         }
 
         GL.bindTexture(GLDefines.TEXTURE_2D, GL.nullTexture);
+
+        return texture;
     }
 
     private function destroyTexture(): Void
     {
-        GL.deleteTexture(texture);
+        GL.deleteTexture(texture1);
+        GL.deleteTexture(texture2);
     }
 
     private function update(deltaTime: Float, currentTime: Float)
@@ -155,7 +167,11 @@ class MeshTest extends OpenGLTest
         animatedMesh.uMultiplier = 1.0 + Math.sin(currentTime * 0.125);
         animatedMesh.vMultiplier = 1.0 + Math.cos(currentTime * 0.125);
 
-        animatedMesh.updateBuffers();
+        animatedMesh2.width = 0.75 + 0.25 * tween;
+        animatedMesh2.height = 1.0 - 0.25 * tween;
+
+        animatedMesh2.uMultiplier = 1.0 + Math.sin(currentTime * 0.125);
+        animatedMesh2.vMultiplier = 1.0 + Math.cos(currentTime * 0.125);
     }
 
     override private function render()
@@ -166,16 +182,34 @@ class MeshTest extends OpenGLTest
 
         GL.useProgram(textureShader.shaderProgram);
 
+        GL.activeTexture(GLDefines.TEXTURE0);
+        GL.bindTexture(GLDefines.TEXTURE_2D, texture1);
+
+        GL.activeTexture(GLDefines.TEXTURE1);
+        GL.bindTexture(GLDefines.TEXTURE_2D, texture2);
+
         GL.uniform4f(textureShader.uniformLocations[0], 1.0, 1.0, 1.0, 1.0);
 
-        GL.activeTexture(GLDefines.TEXTURE0);
-        GL.bindTexture(GLDefines.TEXTURE_2D, texture);
+        GL.uniform1i(textureShader.uniformLocations[1], 1);
+
+        animatedMesh.createBuffers1();
 
         animatedMesh.bindMesh();
 
         animatedMesh.draw();
 
         animatedMesh.unbindMesh();
+
+        //GL.uniform1i(textureShader.uniformLocations[1], 1);
+
+        //animatedMesh2.updateBuffers2();
+
+        //animatedMesh2.bindMesh();
+
+        //animatedMesh2.draw();
+
+        //animatedMesh2.unbindMesh();
+
         GL.bindTexture(GLDefines.TEXTURE_2D, GL.nullTexture);
         GL.useProgram(GL.nullProgram);
     }

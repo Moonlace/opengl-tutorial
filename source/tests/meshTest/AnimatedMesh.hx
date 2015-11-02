@@ -61,18 +61,39 @@ class AnimatedMesh implements IMesh
     {
     }
 
-    public function createBuffers(): Void
+    public function createBuffers(): Void{
+
+    }
+
+    public function createBuffers1(): Void
     {
         /// VertexBuffer also called Array Buffer
-
-        var vertexCount: Int = 4;
-        var vertexBufferSize: Int = vertexCount * (sizeOfFloat * positionAttributeCount + sizeOfFloat * colorAttributeCount + sizeOfFloat * texCoordAttributeCount);
-        vertexBufferData = new Data(vertexBufferSize);
                                             //  x      y       z    w    r    g    b    a    u            v
         var vertexBufferValues: Array<Float> = [0.0,   0.0,    0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0,         vMultiplier,     // vertex 0
                                                 width, height, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, uMultiplier, 0.0,             // vertex 1
                                                 width, 0.0,    0.0, 1.0, 1.0, 1.0, 1.0, 1.0, uMultiplier, vMultiplier,     // vertex 2
                                                 0.0,   height, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0,         0.0];            // vertex 3
+
+        provideBuffers(vertexBufferValues);
+    }
+
+    public function createBuffers2(): Void
+    {
+        /// VertexBuffer also called Array Buffer
+                                            //  x        y       z    w    r    g    b    a    u    v
+        var vertexBufferValues: Array<Float> = [0.0,     0.0,    0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0,     // vertex 0
+                                                -width, -height, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0,     // vertex 1
+                                                -width,  0.0,    0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0,     // vertex 2
+                                                0.0,    -height, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0];    // vertex 3
+
+        provideBuffers(vertexBufferValues);
+    }
+
+    public function provideBuffers(vertexBufferValues: Array<Float>): Void
+    {
+        var vertexCount: Int = 4;
+        var vertexBufferSize: Int = vertexCount * (sizeOfFloat * positionAttributeCount + sizeOfFloat * colorAttributeCount + sizeOfFloat * texCoordAttributeCount);
+        vertexBufferData = new Data(vertexBufferSize);
 
         vertexBufferData.writeFloatArray(vertexBufferValues, DataType.DataTypeFloat32);
         vertexBufferData.offset = 0;
@@ -83,7 +104,7 @@ class AnimatedMesh implements IMesh
         GL.bindBuffer(GLDefines.ARRAY_BUFFER, GL.nullBuffer);
 
 
-        /// IndexBuffer also called Element (Array) Buffer
+/// IndexBuffer also called Element (Array) Buffer
 
         var indexBufferSize: Int = indexCount * sizeOfShort;
         var indexBufferData: Data = new Data(indexBufferSize);
@@ -99,7 +120,7 @@ class AnimatedMesh implements IMesh
         GL.bindBuffer(GLDefines.ELEMENT_ARRAY_BUFFER, GL.nullBuffer);
     }
 
-    public function updateBuffers(): Void
+    public function updateBuffers1(): Void
     {
         // Update width and height
         vertexBufferData.offset = 10 * sizeOfFloat;
@@ -120,6 +141,27 @@ class AnimatedMesh implements IMesh
         vertexBufferData.writeFloat(uMultiplier, DataType.DataTypeFloat32);
         vertexBufferData.offset = 29 * sizeOfFloat;
         vertexBufferData.writeFloat(vMultiplier, DataType.DataTypeFloat32);
+
+        vertexBufferData.offset = 0;
+
+        GL.bindBuffer(GLDefines.ARRAY_BUFFER, vertexBuffer);
+        var offset: Int = 0;
+        // If it is the same size or smaller we override the already existing gpu memory with our updated data
+        GL.bufferSubData(GLDefines.ARRAY_BUFFER, offset, vertexBufferData);
+        GL.bindBuffer(GLDefines.ARRAY_BUFFER, GL.nullBuffer);
+    }
+
+    public function updateBuffers2(): Void
+    {
+        // Update width and height
+        vertexBufferData.offset = 10 * sizeOfFloat;
+        vertexBufferData.writeFloat(-width, DataType.DataTypeFloat32);
+        vertexBufferData.offset = 11 * sizeOfFloat;
+        vertexBufferData.writeFloat(-height, DataType.DataTypeFloat32);
+        vertexBufferData.offset = 20 * sizeOfFloat;
+        vertexBufferData.writeFloat(-width, DataType.DataTypeFloat32);
+        vertexBufferData.offset = 31 * sizeOfFloat;
+        vertexBufferData.writeFloat(-height, DataType.DataTypeFloat32);
 
         vertexBufferData.offset = 0;
 

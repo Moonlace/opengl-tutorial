@@ -62,6 +62,8 @@ class Main
 
         configureInput();
 
+        //testArray = [tests.meshTest.ProjectionTest];
+
         testArray = [ tests.OpenGLTest,
                       tests.clearColorTest.ClearColorTest,
                       tests.triangleTest.TriangleTest,
