@@ -117,7 +117,7 @@ class TextureTest extends OpenGLTest
     private function createShader()
     {
         textureShader = new Shader();
-        textureShader.createShader(vertexShader, fragmentShader, ["a_Position", "a_Color", "u_TexScalar"], ["u_Tint", "s_Texture", "u_TexCoord"]);
+        textureShader.createShader(vertexShader, fragmentShader, ["a_Position", "a_Color", "a_TexCoord"], ["u_Tint", "s_Texture", "u_TexCoord"]);
     }
 
     private function destroyShader(): Void
