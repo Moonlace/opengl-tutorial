@@ -46,10 +46,10 @@ class TextureTest extends OpenGLTest
     inline static private var colorAttributeIndex: Int = 1;
     inline static private var texCoordAttributeIndex: Int = 2;
 
-    inline static private var indexCount: Int = 4;
+    inline static private var indexCount: Int = 6;
 
     inline static private var vertexShader =
-        "
+    "
             attribute highp   vec4  a_Position;
             attribute lowp    vec4  a_Color;
             attribute highp   vec2  a_TexCoord;
@@ -64,20 +64,25 @@ class TextureTest extends OpenGLTest
             {
                 gl_Position = a_Position;
                 v_Color = a_Color * u_Tint;
-                v_TexCoord = a_TexCoord;
+                v_TexCoord = a_TexCoord * u_TexScalar;
             }
         ";
 
     inline static private var fragmentShader =
-        "
-            uniform sampler2D       s_Texture;
+    "
+            uniform sampler2D       s_TextureA;
+            uniform sampler2D       s_TextureB;
 
             varying lowp      vec4  v_Color;
             varying highp     vec2  v_TexCoord;
 
             void main()
             {
-                gl_FragColor = texture2D(s_Texture, v_TexCoord) * v_Color;
+                if (v_TexCoord.x > 0.5) {
+                    gl_FragColor = texture2D(s_TextureB, v_TexCoord) * v_Color;
+                } else {
+                    gl_FragColor = texture2D(s_TextureA, v_TexCoord) * v_Color;
+                }
             }
         ";
 
@@ -86,7 +91,11 @@ class TextureTest extends OpenGLTest
     private var vertexBuffer: GLBuffer;
     private var indexBuffer: GLBuffer;
 
-    private var texture: GLTexture;
+    private var texture1: GLTexture;
+    private var texture2: GLTexture;
+
+    var textureWidth: UInt = 16;
+    var textureHeight: UInt = 16;
 
     // Create OpenGL objectes (Shaders, Buffers, Textures) here
     override private function onCreate(): Void
@@ -96,7 +105,7 @@ class TextureTest extends OpenGLTest
         configureOpenGLState();
         createShader();
         createBuffers();
-        createTexture();
+        createTextures();
     }
 
     // Destroy your created OpenGL objectes
@@ -117,7 +126,7 @@ class TextureTest extends OpenGLTest
     private function createShader()
     {
         textureShader = new Shader();
-        textureShader.createShader(vertexShader, fragmentShader, ["a_Position", "a_Color", "a_TexCoord"], ["u_Tint", "s_Texture", "u_TexCoord"]);
+        textureShader.createShader(vertexShader, fragmentShader, ["a_Position", "a_Color", "a_TexCoord"], ["u_Tint", "u_TexScalar", "s_TextureA", "s_TextureB"]);
     }
 
     private function destroyShader(): Void
@@ -152,7 +161,7 @@ class TextureTest extends OpenGLTest
         var indexBufferSize: Int = indexCount * sizeOfShort;
         var indexBufferData: Data = new Data(indexBufferSize);
 
-        var indexBufferValues: Array<Int> = [0, 3, 1, 2];  // These indices reference the vertices above.
+        var indexBufferValues: Array<Int> = [0, 3, 1, 1, 2, 0];  // These indices reference the vertices above.
 
         indexBufferData.writeIntArray(indexBufferValues, DataType.DataTypeUInt16);
         indexBufferData.offset = 0;
@@ -169,7 +178,41 @@ class TextureTest extends OpenGLTest
         GL.deleteBuffer(vertexBuffer);
     }
 
-    private function createTexture(): Void
+    private function createTextures(): Void
+    {
+        var textureData1: Data = createtextureData(255, 0, 0);
+        texture1 = createTexture(textureData1, GLDefines.TEXTURE0);
+
+        var textureData2: Data = createtextureData(0, 255, 0);
+        texture2 = createTexture(textureData2, GLDefines.TEXTURE1);
+    }
+
+    private function createTexture(textureData: Data, activeTexture: Int): GLTexture
+    {
+        /// Create, configure and upload opengl texture
+        var texture: GLTexture = GL.createTexture();
+
+        GL.activeTexture(activeTexture);
+        GL.bindTexture(GLDefines.TEXTURE_2D, texture);
+
+        // Configure Filtering Mode
+        GL.texParameteri(GLDefines.TEXTURE_2D, GLDefines.TEXTURE_MAG_FILTER, GLDefines.NEAREST);
+        GL.texParameteri(GLDefines.TEXTURE_2D, GLDefines.TEXTURE_MIN_FILTER, GLDefines.NEAREST);
+
+        // Configure wrapping
+        GL.texParameteri(GLDefines.TEXTURE_2D, GLDefines.TEXTURE_WRAP_S, GLDefines.CLAMP_TO_EDGE);
+        GL.texParameteri(GLDefines.TEXTURE_2D, GLDefines.TEXTURE_WRAP_T, GLDefines.CLAMP_TO_EDGE);
+
+        // Copy data to gpu memory
+        GL.pixelStorei(GLDefines.UNPACK_ALIGNMENT, 4);
+        GL.texImage2D(GLDefines.TEXTURE_2D, 0, GLDefines.RGBA, textureWidth, textureHeight, 0, GLDefines.RGBA, GLDefines.UNSIGNED_BYTE, textureData);
+
+        GL.bindTexture(GLDefines.TEXTURE_2D, GL.nullTexture);
+
+        return texture;
+    }
+
+    private function createtextureData(r: Int, g: Int, b: Int): Data
     {
         /// Create RGBA raw pixel data
 
@@ -178,17 +221,14 @@ class TextureTest extends OpenGLTest
         var blue: UInt =  0;
         var alpha: UInt = 255;
 
-        var width: UInt = 16;
-        var height: UInt = 16;
-
-        var textureDataSize: UInt = width * height * 4;
+        var textureDataSize: UInt = textureWidth * textureHeight * 4;
         var textureData: Data = new Data(textureDataSize);
 
         textureData.offset = 0;
 
-        for (y in 0...height)
+        for (y in 0...textureHeight)
         {
-            for (x in 0...width)
+            for (x in 0...textureWidth)
             {
                 if (x % 2 == y % 2) // Checkerboard
                 {
@@ -198,9 +238,9 @@ class TextureTest extends OpenGLTest
                 }
                 else
                 {
-                    red = 255;
-                    green = 0;
-                    blue = 0;
+                    red = r;
+                    green = g;
+                    blue = b;
                 }
 
                 textureData.writeInt(red, DataType.DataTypeUInt8);
@@ -216,30 +256,13 @@ class TextureTest extends OpenGLTest
 
         textureData.offset = 0;
 
-        /// Create, configure and upload opengl texture
-
-        texture = GL.createTexture();
-
-        GL.bindTexture(GLDefines.TEXTURE_2D, texture);
-
-        // Configure Filtering Mode
-        GL.texParameteri(GLDefines.TEXTURE_2D, GLDefines.TEXTURE_MAG_FILTER, GLDefines.NEAREST);
-        GL.texParameteri(GLDefines.TEXTURE_2D, GLDefines.TEXTURE_MIN_FILTER, GLDefines.NEAREST);
-
-        // Configure wrapping
-        GL.texParameteri(GLDefines.TEXTURE_2D, GLDefines.TEXTURE_WRAP_S, GLDefines.CLAMP_TO_EDGE);
-        GL.texParameteri(GLDefines.TEXTURE_2D, GLDefines.TEXTURE_WRAP_T, GLDefines.CLAMP_TO_EDGE);
-
-        // Copy data to gpu memory
-        GL.pixelStorei(GLDefines.UNPACK_ALIGNMENT, 4);
-        GL.texImage2D(GLDefines.TEXTURE_2D, 0, GLDefines.RGBA, width, height, 0, GLDefines.RGBA, GLDefines.UNSIGNED_BYTE, textureData);
-
-        GL.bindTexture(GLDefines.TEXTURE_2D, GL.nullTexture);
+        return textureData;
     }
 
     private function destroyTexture(): Void
     {
-        GL.deleteTexture(texture);
+        GL.deleteTexture(texture1);
+        GL.deleteTexture(texture2);
     }
 
     override private function render()
@@ -251,15 +274,23 @@ class TextureTest extends OpenGLTest
 
         GL.useProgram(textureShader.shaderProgram);
 
+        GL.activeTexture(GLDefines.TEXTURE0);
+        GL.bindTexture(GLDefines.TEXTURE_2D, texture1);
+
+        GL.activeTexture(GLDefines.TEXTURE1);
+        GL.bindTexture(GLDefines.TEXTURE_2D, texture2);
+
         //var tint: Float = 0.5 + 0.5 * tween;
         var tint: Float = 1.0;
+
         GL.uniform1f(textureShader.uniformLocations[0], tint);
 
         var cord: Float = tween;
-        GL.uniform1f(textureShader.uniformLocations[2], cord);
+        GL.uniform1f(textureShader.uniformLocations[1], cord);
 
-        GL.activeTexture(GLDefines.TEXTURE0);
-        GL.bindTexture(GLDefines.TEXTURE_2D, texture);
+        GL.uniform1i(textureShader.uniformLocations[2], 0);
+
+        GL.uniform1i(textureShader.uniformLocations[3], 1);
 
         GL.bindBuffer(GLDefines.ARRAY_BUFFER, vertexBuffer);
         GL.bindBuffer(GLDefines.ELEMENT_ARRAY_BUFFER, indexBuffer);
@@ -286,11 +317,10 @@ class TextureTest extends OpenGLTest
         GL.vertexAttribPointer(texCoordAttributeIndex, texCoordAttributeCount, GLDefines.FLOAT, false, stride, attributeOffset);
 
         var indexOffset: Int = 0;
-        GL.drawElements(GLDefines.TRIANGLE_FAN, indexCount, GLDefines.UNSIGNED_SHORT, indexOffset);
+        GL.drawElements(GLDefines.TRIANGLES, indexCount, GLDefines.UNSIGNED_SHORT, indexOffset);
 
         GL.bindBuffer(GLDefines.ARRAY_BUFFER, GL.nullBuffer);
         GL.bindBuffer(GLDefines.ELEMENT_ARRAY_BUFFER, GL.nullBuffer);
-        GL.bindTexture(GLDefines.TEXTURE_2D, GL.nullTexture);
         GL.useProgram(GL.nullProgram);
     }
 }
